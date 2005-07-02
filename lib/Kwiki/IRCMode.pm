@@ -1,5 +1,5 @@
 package Kwiki::IRCMode;
-our $VERSION = '0.20';
+our $VERSION = '0.30';
 
 =head1 NAME
 
@@ -47,25 +47,43 @@ sub register {
 package Kwiki::IRCMode::Wafl;
 use base qw(Spoon::Formatter::WaflBlock);
 
+use Parse::IRCLog;
+my $p = Parse::IRCLog->new;
+
+=head2 C<< $self->to_html() >>
+
+This converts IRC log messages to HTML.
+
+=cut
+
 sub to_html {
   my (@msgs, %nicks);
-  my $nicks = 0;
+
+  my $html = "<blockquote class='irc'>\n";
+
   for (split("\n", $self->block_text)) {
-    next unless my ($nick, $text) = $_ =~ /^<(\w+)> (.*)/;
-    $nicks{$nick} ||= $nicks++;
-    push @msgs, [ $nick, $self->escape_html($text) ];
+    my $event = $p->parse_line($_); $event->{nick_prefix} ||= '';
+    defined $nicks{$event->{nick}} or $nicks{$event->{nick}} = scalar keys %nicks;
+    $html .= "<p>";
+    if (defined $event->{timestamp}) { $html .= "[$event->{timestamp}]"; }
+    if ($event->{type} eq 'msg') {
+      $html .=
+        "&lt;$event->{nick_prefix}<span class='u$nicks{$event->{nick}}'>$event->{nick}</span>&gt; $event->{text}";
+    } elsif ($event->{type} eq 'action') {
+      $html .=
+        " * <span class='u$nicks{$event->{nick}}'>$event->{nick}</span> $event->{text}";
+    } else {
+      $html .= "$event->{text}";
+    }
+    $html .= "</p>\n";
   }
 
-  "<blockquote class='irc'>\n"
-  . join("\n",map({
-      "<p>&lt;<span class='u$nicks{$_->[0]}'>$_->[0]</span>&gt; $_->[1]</p>\n"
-    } @msgs))
-  . "</blockquote>\n";
+  $html .= "</blockquote>\n";
+
+  return $html;
 }
 
 =head1 TODO
-
-Use Parse::IRCLog to allow more matching of more styles and IRC events.
 
 =head1 AUTHOR
 
@@ -85,8 +103,8 @@ __css/irc.css__
 blockquote.irc {
   background-color: #ddd;
 }
-blockquote.irc span.u0 { color: red; }
-blockquote.irc span.u1 { color: blue; }
-blockquote.irc span.u2 { color: green; }
-blockquote.irc span.u3 { color: yellow; }
-blockquote.irc p { margin-bottom: 0; margin-bottom: 0; }
+blockquote.irc span.u0 { color: #f00; }
+blockquote.irc span.u1 { color: #00f; }
+blockquote.irc span.u2 { color: #0f0; }
+blockquote.irc span.u3 { color: #a0a; }
+blockquote.irc p { margin: 0; padding: 0; }
