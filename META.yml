@@ -1,8 +1,8 @@
 --- #YAML:1.0
 name:                Kwiki-IRCMode
-version:             0.301
+version:             0.302
 abstract:            ~
-license:             ~
+license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.31
 distribution_type:   module
 requires:     
